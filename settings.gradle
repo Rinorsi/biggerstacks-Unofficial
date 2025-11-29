@@ -1,0 +1,28 @@
+/*
+ * Copyright (c) PORTB 2025
+ *
+ * Licensed under GNU LGPL v3
+ * https://www.gnu.org/licenses/lgpl-3.0.txt
+ */
+
+pluginManagement {
+    repositories {
+        maven {
+            url = "https://maven.neoforged.net/releases"
+        }
+        maven {
+            url = "https://codeberg.org/api/packages/PORTB/maven"
+        }
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
+
+rootProject.name = "BiggerStacks-$minecraftVersion"
+
+includeBuild('../SimpleLoggerWrapper')
+includeBuild('../BiggerStacksConfigLib')
+includeBuild('../BiggerStacksTransformerLib')

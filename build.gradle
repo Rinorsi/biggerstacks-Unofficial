@@ -1,0 +1,217 @@
+/*
+ * Copyright (c) PORTB
+ *
+ * Licensed under GNU LGPL v3
+ * https://www.gnu.org/licenses/lgpl-3.0.txt
+ */
+
+plugins {
+    id 'java'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '1.0.14'
+    id 'net.neoforged.gradle.common' version '7.0.152'
+    id 'net.neoforged.gradle.mixin' version '7.0.152'
+    id "com.modrinth.minotaur" version "2.+"
+}
+
+version = "${minecraftVersion}-${modVersion}"
+group = 'portb'
+
+base {
+    archivesName = 'biggerstacks-unofficial'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+println "Java: ${System.getProperty('java.version')}, JVM: ${System.getProperty('java.vm.version')} (${System.getProperty('java.vendor')}), Arch: ${System.getProperty('os.arch')}"
+
+neoForge {
+    version = neoForgeVersion
+
+    runs {
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            systemProperty 'forge.logging.console.level', 'debug'
+            systemProperty 'forge.enabledGameTestNamespaces', 'biggerstacks'
+            systemProperty 'mixin.env.obfuscationContext', 'named'
+            systemProperty 'mixin.env.disableRefMap', 'true'
+        }
+
+        client {
+            client()
+            programArguments.addAll '--username', 'Dev###'
+        }
+
+        server {
+            server()
+        }
+
+        data {
+            data()
+            programArguments.addAll '--mod', 'biggerstacks',
+                                    '--all',
+                                    '--output', file('src/generated/resources/').absolutePath,
+                                    '--existing', file('src/main/resources/').absolutePath
+        }
+    }
+
+    mods {
+        biggerstacks {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+mixin {
+    config "biggerstacks.mixins.json"
+}
+
+// TODO: configure mixin extension once migration is further along
+
+tasks.register('unpackEmbeddedLibs', Sync) {
+    dependsOn configurations.embedded
+    from {
+        configurations.embedded.collect { zipTree(it) }
+    }
+    into "$buildDir/generated/embedded"
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+sourceSets {
+    main {
+        resources.srcDir 'src/generated/resources'
+        output.dir("$buildDir/generated/embedded", builtBy: 'unpackEmbeddedLibs')
+    }
+    mixinProcessor {
+        java.srcDir 'src/mixinProcessor/java'
+        compileClasspath += sourceSets.main.compileClasspath
+    }
+}
+
+configurations {
+    embedded
+    implementation.extendsFrom embedded
+    mixinProcessorImplementation.extendsFrom implementation
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+
+    maven {
+        name = 'NeoForge'
+        url = 'https://maven.neoforged.net/releases'
+    }
+
+    maven { // JEI
+        name = 'DVS1 Maven FS'
+        url = 'https://dvs1.progwml6.com/files/maven'
+    }
+
+    maven {
+        url = "https://codeberg.org/api/packages/PORTB/maven"
+    }
+
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
+
+    exclusiveContent {
+        forRepository {
+            maven {
+                url "https://cursemaven.com"
+            }
+        }
+        filter {
+            includeGroup "curse.maven"
+        }
+    }
+}
+
+dependencies {
+    embedded "portb:BiggerStacksConfigLib:$configLibVersion",
+            "portb:BiggerStacksTransformerLib:$transformerLibVersion",
+            "portb:SimpleLoggerWrapper:$simpleLoggerWrapperVersion"
+
+    implementation "portb:BiggerStacksConfigLib:$configLibVersion"
+    implementation "portb:BiggerStacksTransformerLib:$transformerLibVersion"
+    implementation "portb:SimpleLoggerWrapper:$simpleLoggerWrapperVersion"
+
+    embedded("com.thoughtworks.xstream:xstream:[1.4.20]") {
+        exclude group: 'io.github.x-stream', module: 'mxparser'
+    }
+
+    implementation "maven.modrinth:easy-shulker-boxes:v21.1.3-1.21.1-NeoForge"
+    implementation "maven.modrinth:puzzles-lib:v21.1.39-1.21.1-NeoForge"
+    implementation "maven.modrinth:sophisticated-backpacks:1.21.1-3.25.14.1410"
+    implementation "maven.modrinth:sophisticated-core:1.21.1-1.3.89.1239"
+
+    mixinProcessorImplementation 'org.spongepowered:mixin:0.8.5:processor'
+
+    annotationProcessor sourceSets.mixinProcessor.output
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+def clientMappingsFile = file('client-mappings.txt')
+def serverMappingsFile = file('server-mappings.txt')
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs += [
+            '-AmappingTypes=named',
+            '-AdefaultObfuscationEnv=named',
+            "-AmojmapMappingFile=${clientMappingsFile.absolutePath}",
+            "-AmojmapExtraMappingFiles=${serverMappingsFile.absolutePath}"
+    ]
+}
+
+tasks.named('compileJava').configure {
+    dependsOn(tasks.named('compileMixinProcessorJava'), tasks.named('processMixinProcessorResources'))
+}
+
+tasks.withType(JavaExec).configureEach {
+    if (name in ['runClient', 'runServer']) {
+        classpath += configurations.embedded
+    }
+    systemProperty 'mixin.env.obfuscationContext', 'named'
+}
+
+jar {
+    from {
+        configurations.embedded.collect { zipTree(it) }
+    }
+    duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.EXCLUDE
+    exclude 'META-INF/MANIFEST.MF'
+
+    manifest {
+        attributes(
+                "Specification-Title": "biggerstacks",
+                "Implementation-Title": project.name,
+                "Implementation-Version": project.jar.archiveVersion.get(),
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                "MixinConfigs": "biggerstacks.mixins.json",
+                "TransformerLib-Version": transformerLibVersion,
+                "ConfigLib-Version": configLibVersion,
+                "SimpleLoggerWrapper-Version": simpleLoggerWrapperVersion
+        )
+    }
+}
+
+modrinth {
+    token = System.getenv("MODRINTH_TOKEN") ?: ""
+    projectId = modrinthProjectId
+    versionNumber = "${project.archivesBaseName}-${project.version}"
+    uploadFile = tasks.named("jar").get().archiveFile.get().asFile
+    gameVersions = [minecraftVersion]
+    loaders = ["neoforge"]
+    changelog = "See release notes for details."
+}

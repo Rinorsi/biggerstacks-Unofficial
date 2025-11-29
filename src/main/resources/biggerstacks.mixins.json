@@ -1,0 +1,28 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "portb.biggerstacks.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "plugin": "portb.biggerstacks.TransformerEngine",
+  "mixins": [
+    "compat.refinedstorage.UpgradeItemHandlerMixin",
+    "compat.sophisticatedcore.InventoryHandlerMixin",
+    "compat.sophisticatedcore.CompactingUpgradeWrapperMixin",
+    "compat.sophisticatedcore.StackUpgradeItemMixin",
+    "vanilla.ContainersMixin",
+    "vanilla.ExtraCodecsMixin",
+    "vanilla.DataComponentsMixin",
+    "vanilla.ItemPropertiesMixin",
+    "vanilla.stacksize.BundleContentsMutableMixin",
+    "vanilla.stacksize.BundleItemMixin",
+    "vanilla.stacksize.ItemMixin",
+    "vanilla.stacksize.ItemStackHandlerMixin",
+    "vanilla.stacksize.ItemStackMixin"
+  ],
+  "client": [
+    "client.ItemRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}
