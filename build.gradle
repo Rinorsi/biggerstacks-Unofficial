@@ -161,8 +161,18 @@ dependencies {
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
 
-def clientMappingsFile = file('client-mappings.txt')
-def serverMappingsFile = file('server-mappings.txt')
+def resolveLocalFile(String... locations) {
+    for (String path : locations) {
+        def candidate = file(path)
+        if (candidate.exists()) {
+            return candidate
+        }
+    }
+    throw new GradleException("Required file not found. Checked: ${locations.join(', ')}")
+}
+
+def clientMappingsFile = resolveLocalFile('client-mappings.txt', '.workspace/resources/client-mappings.txt')
+def serverMappingsFile = resolveLocalFile('server-mappings.txt', '.workspace/resources/server-mappings.txt')
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'

@@ -1,0 +1,11 @@
+META-INF/
+META-INF/MANIFEST.MF
+net/
+net/neoforged/
+net/neoforged/gradle/
+net/neoforged/gradle/mixin/
+net/neoforged/gradle/mixin/MixinProjectPlugin.class
+net/neoforged/gradle/mixin/MixinPlugin.class
+net/neoforged/gradle/mixin/MixinExtension.class
+META-INF/gradle-plugins/
+META-INF/gradle-plugins/net.neoforged.gradle.mixin.properties

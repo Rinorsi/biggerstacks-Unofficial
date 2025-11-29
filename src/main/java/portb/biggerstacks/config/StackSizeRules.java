@@ -15,7 +15,7 @@ import portb.configlib.xml.RuleSet;
 
 public class StackSizeRules
 {
-    private static final int ABSOLUTE_MAX_STACK_SIZE = 100_000_000;
+    private static final int ABSOLUTE_MAX_STACK_SIZE = 1_073_741_823;
     private static boolean clampWarningLogged = false;
 
     /**
